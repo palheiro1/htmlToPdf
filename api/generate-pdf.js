@@ -55,14 +55,43 @@ export default async function handler(req, res) {
 
     console.log('Starting PDF generation...');
 
-    // Launch browser with @sparticuz/chromium
-    browser = await puppeteer.launch({
-      args: chromium.args,
-      defaultViewport: chromium.defaultViewport,
-      executablePath: await chromium.executablePath(),
-      headless: chromium.headless,
+    // Determine if we're running on Vercel
+    const isVercel = process.env.VERCEL || process.env.VERCEL_ENV;
+    
+    // Configure browser options for different environments
+    const browserOptions = {
+      headless: true,
       ignoreHTTPSErrors: true,
-    });
+    };
+
+    if (isVercel) {
+      // Vercel/serverless configuration
+      browserOptions.args = [
+        ...chromium.args,
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-web-security',
+        '--disable-features=VizDisplayCompositor'
+      ];
+      browserOptions.defaultViewport = chromium.defaultViewport;
+      browserOptions.executablePath = await chromium.executablePath({
+        path: '/tmp'
+      });
+      console.log('Using Vercel/serverless configuration');
+    } else {
+      // Local development configuration
+      browserOptions.args = [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage'
+      ];
+      browserOptions.executablePath = await chromium.executablePath();
+      console.log('Using local development configuration');
+    }
+
+    // Launch browser
+    browser = await puppeteer.launch(browserOptions);
 
     console.log('Browser launched successfully');
 
@@ -131,6 +160,7 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error('PDF generation error:', error);
+    console.error('Error stack:', error.stack);
     
     // Ensure browser is closed on error
     if (browser) {
@@ -141,10 +171,18 @@ export default async function handler(req, res) {
       }
     }
     
-    return sendResponse(res, 500, { 
-      error: 'Failed to generate PDF', 
+    // Provide more detailed error information
+    const errorDetails = {
+      error: 'Failed to generate PDF',
       details: error.message,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
-    });
+      isVercel: !!(process.env.VERCEL || process.env.VERCEL_ENV),
+      nodeVersion: process.version,
+    };
+    
+    if (process.env.NODE_ENV === 'development') {
+      errorDetails.stack = error.stack;
+    }
+    
+    return sendResponse(res, 500, errorDetails);
   }
 }

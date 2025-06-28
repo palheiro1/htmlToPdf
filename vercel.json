@@ -2,7 +2,11 @@
   "version": 2,
   "functions": {
     "api/generate-pdf.js": {
-      "maxDuration": 30
+      "maxDuration": 30,
+      "memory": 1024
     }
+  },
+  "env": {
+    "PUPPETEER_SKIP_CHROMIUM_DOWNLOAD": "true"
   }
 }
