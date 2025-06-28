@@ -54,41 +54,18 @@ export default async function handler(req, res) {
     }
 
     console.log('Starting PDF generation...');
+    console.log('Environment - VERCEL:', process.env.VERCEL, 'VERCEL_ENV:', process.env.VERCEL_ENV);
 
-    // Determine if we're running on Vercel
-    const isVercel = process.env.VERCEL || process.env.VERCEL_ENV;
-    
-    // Configure browser options for different environments
+    // Launch browser with simplified configuration
     const browserOptions = {
-      headless: true,
+      args: chromium.args,
+      defaultViewport: chromium.defaultViewport,
+      executablePath: await chromium.executablePath(),
+      headless: chromium.headless,
       ignoreHTTPSErrors: true,
     };
 
-    if (isVercel) {
-      // Vercel/serverless configuration
-      browserOptions.args = [
-        ...chromium.args,
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-web-security',
-        '--disable-features=VizDisplayCompositor'
-      ];
-      browserOptions.defaultViewport = chromium.defaultViewport;
-      browserOptions.executablePath = await chromium.executablePath({
-        path: '/tmp'
-      });
-      console.log('Using Vercel/serverless configuration');
-    } else {
-      // Local development configuration
-      browserOptions.args = [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage'
-      ];
-      browserOptions.executablePath = await chromium.executablePath();
-      console.log('Using local development configuration');
-    }
+    console.log('Browser options:', JSON.stringify(browserOptions, null, 2));
 
     // Launch browser
     browser = await puppeteer.launch(browserOptions);
