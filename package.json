@@ -6,13 +6,13 @@
   "type": "module",
   "scripts": {
     "dev": "vercel dev",
-    "start": "vercel dev", 
+    "start": "vercel dev",
     "test": "echo \"No tests specified\"",
     "deploy": "vercel --prod"
   },
   "dependencies": {
-    "chrome-aws-lambda": "^10.1.0",
-    "puppeteer-core": "^10.4.0"
+    "@sparticuz/chromium": "^131.0.0",
+    "puppeteer-core": "^23.6.1"
   },
   "engines": {
     "node": ">=18.x"
