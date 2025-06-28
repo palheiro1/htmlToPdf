@@ -1,6 +1,34 @@
 import chromium from '@sparticuz/chromium';
 import puppeteer from 'puppeteer-core';
 
+// Utility function to handle both Vercel and Node.js HTTP responses
+function sendResponse(res, statusCode, data, headers = {}) {
+  // Check if data is a Buffer first (before setting headers)
+  const isBuffer = Buffer.isBuffer(data);
+  
+  // Set headers
+  Object.entries(headers).forEach(([key, value]) => {
+    res.setHeader(key, value);
+  });
+  
+  // Handle Vercel-style response (has status method)
+  if (typeof res.status === 'function') {
+    if (isBuffer) {
+      return res.status(statusCode).end(data);
+    }
+    return res.status(statusCode).json(data);
+  }
+  
+  // Handle Node.js native response
+  if (isBuffer) {
+    res.writeHead(statusCode, headers);
+    return res.end(data);
+  }
+  
+  res.writeHead(statusCode, { ...headers, 'Content-Type': 'application/json' });
+  return res.end(JSON.stringify(data));
+}
+
 export default async function handler(req, res) {
   // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -9,11 +37,11 @@ export default async function handler(req, res) {
 
   // Handle preflight requests
   if (req.method === 'OPTIONS') {
-    return res.status(200).end();
+    return sendResponse(res, 200, '');
   }
 
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method Not Allowed' });
+    return sendResponse(res, 405, { error: 'Method Not Allowed' });
   }
 
   let browser = null;
@@ -22,7 +50,7 @@ export default async function handler(req, res) {
     const { html, options = {} } = req.body;
 
     if (!html) {
-      return res.status(400).json({ error: 'Missing HTML content' });
+      return sendResponse(res, 400, { error: 'Missing HTML content' });
     }
 
     console.log('Starting PDF generation...');
@@ -48,8 +76,8 @@ export default async function handler(req, res) {
 
     console.log('Content loaded successfully');
 
-    // Wait for any remaining async operations
-    await page.waitForTimeout(1000);
+    // Wait for any remaining async operations using setTimeout instead of waitForTimeout
+    await new Promise(resolve => setTimeout(resolve, 1000));
 
     // PDF generation options
     const pdfOptions = {
@@ -71,6 +99,9 @@ export default async function handler(req, res) {
     const pdfBuffer = await page.pdf(pdfOptions);
     
     console.log('PDF generated successfully, size:', pdfBuffer.length);
+    console.log('PDF buffer type:', typeof pdfBuffer);
+    console.log('Is Buffer:', Buffer.isBuffer(pdfBuffer));
+    console.log('First 4 bytes:', pdfBuffer.slice(0, 4));
 
     await browser.close();
     browser = null;
@@ -80,7 +111,7 @@ export default async function handler(req, res) {
       throw new Error('Generated PDF is empty');
     }
 
-    // Set proper response headers
+    // Send the PDF buffer with proper headers
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Length', pdfBuffer.length.toString());
     
@@ -88,8 +119,15 @@ export default async function handler(req, res) {
       res.setHeader('Content-Disposition', `attachment; filename="${options.filename || 'document.pdf'}"`);
     }
 
-    // Send the PDF buffer
-    return res.end(pdfBuffer);
+    // Handle different response types
+    if (typeof res.status === 'function') {
+      // Vercel environment
+      return res.status(200).end(pdfBuffer);
+    } else {
+      // Node.js native HTTP
+      res.writeHead(200);
+      return res.end(pdfBuffer);
+    }
 
   } catch (error) {
     console.error('PDF generation error:', error);
@@ -103,7 +141,7 @@ export default async function handler(req, res) {
       }
     }
     
-    return res.status(500).json({ 
+    return sendResponse(res, 500, { 
       error: 'Failed to generate PDF', 
       details: error.message,
       stack: process.env.NODE_ENV === 'development' ? error.stack : undefined

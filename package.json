@@ -5,9 +5,9 @@
   "main": "api/generate-pdf.js",
   "type": "module",
   "scripts": {
-    "dev": "vercel dev",
-    "start": "vercel dev",
-    "test": "echo \"No tests specified\"",
+    "dev": "node local-server.js",
+    "start": "node local-server.js",
+    "test": "node test-cli.js",
     "deploy": "vercel --prod"
   },
   "dependencies": {
