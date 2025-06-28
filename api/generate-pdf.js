@@ -16,6 +16,8 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
+  let browser = null;
+
   try {
     const { html, options = {} } = req.body;
 
@@ -23,9 +25,19 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Missing HTML content' });
     }
 
-    // Launch browser
-    const browser = await puppeteer.launch({
-      args: chromium.args,
+    // Launch browser with improved configuration
+    browser = await puppeteer.launch({
+      args: [
+        ...chromium.args,
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-accelerated-2d-canvas',
+        '--no-first-run',
+        '--no-zygote',
+        '--single-process',
+        '--disable-gpu'
+      ],
       defaultViewport: chromium.defaultViewport,
       executablePath: await chromium.executablePath,
       headless: chromium.headless,
@@ -34,13 +46,16 @@ export default async function handler(req, res) {
 
     const page = await browser.newPage();
     
-    // Set content and wait for it to load
+    // Set content and wait for it to load properly
     await page.setContent(html, { 
       waitUntil: ['networkidle0', 'domcontentloaded'],
       timeout: 30000 
     });
 
-    // PDF generation options
+    // Add small delay to ensure everything is rendered
+    await page.waitForTimeout(500);
+
+    // PDF generation options with better defaults
     const pdfOptions = {
       format: options.format || 'A4',
       printBackground: options.printBackground !== false,
@@ -50,26 +65,46 @@ export default async function handler(req, res) {
         bottom: '20px',
         left: '20px'
       },
+      preferCSSPageSize: true,
       ...options
     };
 
-    // Generate PDF
-    const pdf = await page.pdf(pdfOptions);
+    // Generate PDF buffer
+    const pdfBuffer = await page.pdf(pdfOptions);
     
     await browser.close();
+    browser = null;
 
-    // Set response headers
+    // Validate PDF buffer
+    if (!pdfBuffer || pdfBuffer.length === 0) {
+      throw new Error('Generated PDF buffer is empty');
+    }
+
+    console.log(`PDF generated successfully. Size: ${pdfBuffer.length} bytes`);
+
+    // Set proper response headers
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Length', pdf.length);
+    res.setHeader('Content-Length', pdfBuffer.length.toString());
     
     if (options.download !== false) {
       res.setHeader('Content-Disposition', `attachment; filename="${options.filename || 'document.pdf'}"`);
     }
 
-    return res.send(pdf);
+    // Send PDF buffer properly
+    return res.end(pdfBuffer);
 
   } catch (error) {
     console.error('PDF generation error:', error);
+    
+    // Ensure browser is closed on error
+    if (browser) {
+      try {
+        await browser.close();
+      } catch (closeError) {
+        console.error('Error closing browser:', closeError);
+      }
+    }
+
     return res.status(500).json({ 
       error: 'Failed to generate PDF', 
       details: error.message 

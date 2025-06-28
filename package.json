@@ -6,16 +6,25 @@
   "type": "module",
   "scripts": {
     "dev": "vercel dev",
-    "start": "vercel dev",
+    "start": "vercel dev", 
+    "test": "echo \"No tests specified\"",
     "deploy": "vercel --prod"
   },
   "dependencies": {
     "chrome-aws-lambda": "^10.1.0",
-    "puppeteer-core": "^10.1.0"
+    "puppeteer-core": "^10.4.0"
   },
   "engines": {
     "node": ">=18.x"
   },
-  "keywords": ["pdf", "puppeteer", "vercel", "microservice"],
-  "license": "MIT"
+  "keywords": [
+    "pdf",
+    "puppeteer",
+    "vercel",
+    "microservice"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "puppeteer": "^24.11.1"
+  }
 }

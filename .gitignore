@@ -9,3 +9,5 @@ dist/
 out/
 coverage/
 *.pdf
+test*.pdf
+.vercel
