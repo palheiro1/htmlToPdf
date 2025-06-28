@@ -1,14 +1,21 @@
 {
   "name": "pdf-service",
   "version": "1.0.0",
+  "description": "Puppeteer PDF generation microservice for Vercel",
   "main": "api/generate-pdf.js",
   "type": "module",
   "scripts": {
     "dev": "vercel dev",
-    "start": "vercel dev"
+    "start": "vercel dev",
+    "deploy": "vercel --prod"
   },
   "dependencies": {
-    "chrome-aws-lambda": "10.1.0",
-    "puppeteer-core": "10.1.0"
-  }
+    "chrome-aws-lambda": "^10.1.0",
+    "puppeteer-core": "^10.1.0"
+  },
+  "engines": {
+    "node": ">=18.x"
+  },
+  "keywords": ["pdf", "puppeteer", "vercel", "microservice"],
+  "license": "MIT"
 }
