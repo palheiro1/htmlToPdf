@@ -17,7 +17,7 @@ export default async function handler(req, res) {
   }
 
   let browser = null;
-
+  
   try {
     const { html, options = {} } = req.body;
 
@@ -25,7 +25,9 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Missing HTML content' });
     }
 
-    // Launch browser with improved configuration
+    console.log('Starting PDF generation...');
+
+    // Launch browser with @sparticuz/chromium
     browser = await puppeteer.launch({
       args: chromium.args,
       defaultViewport: chromium.defaultViewport,
@@ -34,18 +36,22 @@ export default async function handler(req, res) {
       ignoreHTTPSErrors: true,
     });
 
+    console.log('Browser launched successfully');
+
     const page = await browser.newPage();
     
-    // Set content and wait for it to load properly
+    // Set content with proper wait conditions
     await page.setContent(html, { 
       waitUntil: ['networkidle0', 'domcontentloaded'],
       timeout: 30000 
     });
 
-    // Add small delay to ensure everything is rendered
-    await page.waitForTimeout(500);
+    console.log('Content loaded successfully');
 
-    // PDF generation options with better defaults
+    // Wait for any remaining async operations
+    await page.waitForTimeout(1000);
+
+    // PDF generation options
     const pdfOptions = {
       format: options.format || 'A4',
       printBackground: options.printBackground !== false,
@@ -55,22 +61,24 @@ export default async function handler(req, res) {
         bottom: '20px',
         left: '20px'
       },
-      preferCSSPageSize: true,
+      preferCSSPageSize: false,
       ...options
     };
 
-    // Generate PDF buffer
+    console.log('Generating PDF with options:', pdfOptions);
+
+    // Generate PDF
     const pdfBuffer = await page.pdf(pdfOptions);
     
+    console.log('PDF generated successfully, size:', pdfBuffer.length);
+
     await browser.close();
     browser = null;
 
-    // Validate PDF buffer
+    // Verify the PDF buffer is valid
     if (!pdfBuffer || pdfBuffer.length === 0) {
-      throw new Error('Generated PDF buffer is empty');
+      throw new Error('Generated PDF is empty');
     }
-
-    console.log(`PDF generated successfully. Size: ${pdfBuffer.length} bytes`);
 
     // Set proper response headers
     res.setHeader('Content-Type', 'application/pdf');
@@ -80,7 +88,7 @@ export default async function handler(req, res) {
       res.setHeader('Content-Disposition', `attachment; filename="${options.filename || 'document.pdf'}"`);
     }
 
-    // Send PDF buffer properly
+    // Send the PDF buffer
     return res.end(pdfBuffer);
 
   } catch (error) {
@@ -94,10 +102,11 @@ export default async function handler(req, res) {
         console.error('Error closing browser:', closeError);
       }
     }
-
+    
     return res.status(500).json({ 
       error: 'Failed to generate PDF', 
-      details: error.message 
+      details: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 }
