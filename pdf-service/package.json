@@ -1,0 +1,14 @@
+{
+  "name": "pdf-service",
+  "version": "1.0.0",
+  "main": "api/generate-pdf.js",
+  "type": "module",
+  "scripts": {
+    "dev": "vercel dev",
+    "start": "vercel dev"
+  },
+  "dependencies": {
+    "chrome-aws-lambda": "10.1.0",
+    "puppeteer-core": "10.1.0"
+  }
+}
