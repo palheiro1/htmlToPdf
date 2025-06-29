@@ -1,7 +1,7 @@
 # Use Node.js 18 with Ubuntu base for better compatibility
 FROM node:18-bullseye
 
-# Install Chrome dependencies
+# Install Chrome dependencies and emoji fonts
 RUN apt-get update && apt-get install -y \
     wget \
     gnupg \
@@ -18,6 +18,10 @@ RUN apt-get update && apt-get install -y \
     libgdk-pixbuf2.0-0 \
     libxcomposite1 \
     libxcursor1 \
+    fonts-noto-emoji \
+    fonts-noto-color-emoji \
+    fonts-liberation \
+    fonts-dejavu-core \
     libxdamage1 \
     libxext6 \
     libxfixes3 \
