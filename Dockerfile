@@ -1,7 +1,7 @@
 # Use Node.js 18 with Ubuntu base for better compatibility
 FROM node:18-bullseye
 
-# Install Chrome dependencies and emoji fonts
+# Install Chrome dependencies and additional fonts
 RUN apt-get update && apt-get install -y \
     wget \
     gnupg \
@@ -18,10 +18,11 @@ RUN apt-get update && apt-get install -y \
     libgdk-pixbuf2.0-0 \
     libxcomposite1 \
     libxcursor1 \
-    fonts-noto-emoji \
-    fonts-noto-color-emoji \
+    fonts-noto \
+    fonts-noto-cjk \
     fonts-liberation \
     fonts-dejavu-core \
+    unzip \
     libxdamage1 \
     libxext6 \
     libxfixes3 \
@@ -34,6 +35,12 @@ RUN apt-get update && apt-get install -y \
     libnss3 \
     libgbm1 \
     && rm -rf /var/lib/apt/lists/*
+
+# Install Noto Color Emoji font for better emoji support
+RUN mkdir -p /usr/share/fonts/truetype/noto && \
+    wget -O /usr/share/fonts/truetype/noto/NotoColorEmoji.ttf \
+    "https://github.com/googlefonts/noto-emoji/raw/main/fonts/NotoColorEmoji.ttf" && \
+    fc-cache -fv
 
 # Create app directory
 WORKDIR /usr/src/app
