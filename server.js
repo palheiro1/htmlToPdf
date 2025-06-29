@@ -1,9 +1,39 @@
 import express from 'express';
-import puppeteer from 'puppeteer';
 import cors from 'cors';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Browser initialization variables
+let puppeteerLaunch, chromium, browserEnv;
+
+// Initialize browser dependencies based on environment
+async function initializeBrowser() {
+  if (browserEnv) return browserEnv; // Already initialized
+  
+  try {
+    // Try to load @sparticuz/chromium (Docker environment)
+    const chromiumModule = await import('@sparticuz/chromium');
+    chromium = chromiumModule.default || chromiumModule;
+    const puppeteerCore = await import('puppeteer-core');
+    puppeteerLaunch = puppeteerCore.default || puppeteerCore;
+    console.log('🐳 Docker environment detected - using @sparticuz/chromium');
+    browserEnv = 'docker';
+    return 'docker';
+  } catch (error) {
+    try {
+      // Fallback to regular puppeteer (local development)
+      const puppeteerLocal = await import('puppeteer');
+      puppeteerLaunch = puppeteerLocal.default || puppeteerLocal;
+      console.log('💻 Local environment detected - using puppeteer');
+      browserEnv = 'local';
+      return 'local';
+    } catch (localError) {
+      console.error('❌ Failed to load any Puppeteer variant:', localError);
+      throw new Error('No suitable Puppeteer package found');
+    }
+  }
+}
 
 // Middleware
 app.use(cors());
@@ -38,6 +68,9 @@ app.post('/api/generate-pdf', async (req, res) => {
   let browser = null;
 
   try {
+    // Initialize browser environment if not already done
+    const browserEnvironment = await initializeBrowser();
+    
     const { html, options = {} } = req.body;
 
     if (!html) {
@@ -47,28 +80,51 @@ app.post('/api/generate-pdf', async (req, res) => {
     console.log('Starting PDF generation...');
     console.log('Request from:', req.ip);
 
-    // Configure browser options for Docker environment
-    let browserOptions = {
-      headless: 'new',
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-accelerated-2d-canvas',
-        '--no-first-run',
-        '--no-zygote',
-        '--disable-gpu'
-      ],
-      defaultViewport: {
-        width: 1920,
-        height: 1080
-      }
-    };
+    // Configure browser options based on environment
+    let browserOptions;
+    
+    if (browserEnvironment === 'docker' && chromium) {
+      // Docker environment with @sparticuz/chromium
+      browserOptions = {
+        executablePath: await chromium.executablePath(),
+        headless: chromium.headless,
+        args: [
+          ...chromium.args,
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-accelerated-2d-canvas',
+          '--no-first-run',
+          '--no-zygote',
+          '--disable-gpu'
+        ],
+        defaultViewport: chromium.defaultViewport,
+        ignoreHTTPSErrors: true
+      };
+      console.log('Using @sparticuz/chromium for Docker environment');
+    } else {
+      // Local development environment with full puppeteer
+      browserOptions = {
+        headless: 'new',
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-accelerated-2d-canvas',
+          '--no-first-run',
+          '--no-zygote',
+          '--disable-gpu'
+        ],
+        defaultViewport: {
+          width: 1920,
+          height: 1080
+        }
+      };
+      console.log('Using local Puppeteer for development environment');
+    }
 
-    console.log('Using bundled Chromium in Docker environment');
-
-    // Launch browser
-    browser = await puppeteer.launch(browserOptions);
+    // Launch browser with the correct puppeteer instance
+    browser = await puppeteerLaunch.launch(browserOptions);
 
     console.log('Browser launched successfully');
 
