@@ -1,4 +1,4 @@
-import chromium from '@sparticuz/chromium';
+import chromium from '@sparticuz/chromium-min';
 import puppeteer from 'puppeteer-core';
 
 // Disable graphics mode for better serverless compatibility
@@ -60,10 +60,13 @@ export default async function handler(req, res) {
     console.log('Environment - VERCEL:', process.env.VERCEL, 'VERCEL_ENV:', process.env.VERCEL_ENV);
 
     // Use simplified, conservative browser configuration for maximum compatibility
+    // For -min package, use external chromium pack from GitHub releases
+    const chromiumPackUrl = 'https://github.com/sparticuz/chromium/releases/download/v119.0.0/chromium-v119.0.0-pack.tar';
+    
     const browserOptions = {
       args: chromium.args,
       defaultViewport: chromium.defaultViewport,
-      executablePath: await chromium.executablePath(),
+      executablePath: await chromium.executablePath(chromiumPackUrl),
       headless: chromium.headless,
       ignoreHTTPSErrors: true,
     };
