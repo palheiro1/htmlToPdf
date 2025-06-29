@@ -47,7 +47,7 @@ app.post('/api/generate-pdf', async (req, res) => {
     console.log('Starting PDF generation...');
     console.log('Request from:', req.ip);
 
-    // Configure browser options for different environments
+    // Configure browser options for Docker environment
     let browserOptions = {
       headless: 'new',
       args: [
@@ -65,13 +65,7 @@ app.post('/api/generate-pdf', async (req, res) => {
       }
     };
 
-    // Use system Chrome on Render.com
-    if (process.env.RENDER || process.env.PUPPETEER_EXECUTABLE_PATH) {
-      browserOptions.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/google-chrome-stable';
-      console.log('Using system Chrome for Render.com:', browserOptions.executablePath);
-    } else {
-      console.log('Using bundled Chromium for local development');
-    }
+    console.log('Using bundled Chromium in Docker environment');
 
     // Launch browser
     browser = await puppeteer.launch(browserOptions);
