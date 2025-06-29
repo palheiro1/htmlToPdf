@@ -1,4 +1,4 @@
-import chromium from '@sparticuz/chromium-min';
+import chromium from 'chrome-aws-lambda';
 import puppeteer from 'puppeteer-core';
 
 // Disable graphics mode for better serverless compatibility
@@ -59,14 +59,11 @@ export default async function handler(req, res) {
     console.log('Starting PDF generation...');
     console.log('Environment - VERCEL:', process.env.VERCEL, 'VERCEL_ENV:', process.env.VERCEL_ENV);
 
-    // Use simplified, conservative browser configuration for maximum compatibility
-    // For -min package, use external chromium pack from GitHub releases
-    const chromiumPackUrl = 'https://github.com/sparticuz/chromium/releases/download/v119.0.0/chromium-v119.0.0-pack.tar';
-    
+    // Use chrome-aws-lambda for maximum Vercel compatibility
     const browserOptions = {
       args: chromium.args,
       defaultViewport: chromium.defaultViewport,
-      executablePath: await chromium.executablePath(chromiumPackUrl),
+      executablePath: await chromium.executablePath,
       headless: chromium.headless,
       ignoreHTTPSErrors: true,
     };
