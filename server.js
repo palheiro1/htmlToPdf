@@ -47,8 +47,8 @@ app.post('/api/generate-pdf', async (req, res) => {
     console.log('Starting PDF generation...');
     console.log('Request from:', req.ip);
 
-    // Launch browser with Docker-optimized settings
-    browser = await puppeteer.launch({
+    // Configure browser options for different environments
+    let browserOptions = {
       headless: 'new',
       args: [
         '--no-sandbox',
@@ -57,14 +57,24 @@ app.post('/api/generate-pdf', async (req, res) => {
         '--disable-accelerated-2d-canvas',
         '--no-first-run',
         '--no-zygote',
-        '--single-process',
         '--disable-gpu'
       ],
       defaultViewport: {
         width: 1920,
         height: 1080
       }
-    });
+    };
+
+    // Use system Chrome on Render.com
+    if (process.env.RENDER || process.env.PUPPETEER_EXECUTABLE_PATH) {
+      browserOptions.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/google-chrome-stable';
+      console.log('Using system Chrome for Render.com:', browserOptions.executablePath);
+    } else {
+      console.log('Using bundled Chromium for local development');
+    }
+
+    // Launch browser
+    browser = await puppeteer.launch(browserOptions);
 
     console.log('Browser launched successfully');
 

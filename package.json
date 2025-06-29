@@ -1,15 +1,13 @@
 {
   "name": "pdf-service",
   "version": "1.0.0",
-  "description": "Puppeteer PDF generation microservice for Vercel",
+  "description": "Puppeteer PDF generation microservice for Render.com",
   "main": "server.js",
   "type": "module",
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
-    "test": "node test-cli.js",
-    "docker:build": "docker build -t pdf-service .",
-    "docker:run": "docker run -p 3000:3000 pdf-service"
+    "test": "node test-cli.js"
   },
   "dependencies": {
     "puppeteer": "^23.6.0",
@@ -22,11 +20,8 @@
   "keywords": [
     "pdf",
     "puppeteer",
-    "vercel",
+    "render",
     "microservice"
   ],
-  "license": "MIT",
-  "devDependencies": {
-    "puppeteer": "^24.11.1"
-  }
+  "license": "MIT"
 }
