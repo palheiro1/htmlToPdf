@@ -1,6 +1,9 @@
 import chromium from '@sparticuz/chromium';
 import puppeteer from 'puppeteer-core';
 
+// Disable graphics mode for better serverless compatibility
+chromium.setGraphicsMode = false;
+
 // Utility function to handle both Vercel and Node.js HTTP responses
 function sendResponse(res, statusCode, data, headers = {}) {
   // Check if data is a Buffer first (before setting headers)
@@ -56,54 +59,20 @@ export default async function handler(req, res) {
     console.log('Starting PDF generation...');
     console.log('Environment - VERCEL:', process.env.VERCEL, 'VERCEL_ENV:', process.env.VERCEL_ENV);
 
-    // Configure browser according to @sparticuz/chromium README
-    const isLocal = !process.env.VERCEL && !process.env.VERCEL_ENV;
-    
-    let browserOptions;
-    
-    if (isLocal) {
-      // Local development - use @sparticuz/chromium even locally for consistency
-      browserOptions = {
-        args: puppeteer.defaultArgs({ 
-          args: chromium.args, 
-          headless: "shell" 
-        }),
-        defaultViewport: {
-          deviceScaleFactor: 1,
-          hasTouch: false,
-          height: 1080,
-          isLandscape: true,
-          isMobile: false,
-          width: 1920,
-        },
-        executablePath: await chromium.executablePath(),
-        headless: "shell",
-        ignoreHTTPSErrors: true,
-      };
-      console.log('Using local development configuration with @sparticuz/chromium');
-    } else {
-      // Vercel/serverless - use @sparticuz/chromium
-      browserOptions = {
-        args: puppeteer.defaultArgs({ 
-          args: chromium.args, 
-          headless: "shell" 
-        }),
-        defaultViewport: {
-          deviceScaleFactor: 1,
-          hasTouch: false,
-          height: 1080,
-          isLandscape: true,
-          isMobile: false,
-          width: 1920,
-        },
-        executablePath: await chromium.executablePath(),
-        headless: "shell",
-        ignoreHTTPSErrors: true,
-      };
-      console.log('Using serverless configuration with @sparticuz/chromium');
-    }
+    // Use simplified, conservative browser configuration for maximum compatibility
+    const browserOptions = {
+      args: chromium.args,
+      defaultViewport: chromium.defaultViewport,
+      executablePath: await chromium.executablePath(),
+      headless: chromium.headless,
+      ignoreHTTPSErrors: true,
+    };
 
-    console.log('Browser options:', JSON.stringify(browserOptions, null, 2));
+    console.log('Browser configuration:', {
+      argsCount: browserOptions.args?.length,
+      hasExecutablePath: !!browserOptions.executablePath,
+      headless: browserOptions.headless
+    });
 
     // Launch browser
     browser = await puppeteer.launch(browserOptions);
